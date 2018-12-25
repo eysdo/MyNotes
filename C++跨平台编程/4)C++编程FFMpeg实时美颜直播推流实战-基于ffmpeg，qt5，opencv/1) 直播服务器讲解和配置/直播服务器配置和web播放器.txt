@@ -1,0 +1,137 @@
+*直播播放器配置和web播放器
+
+一. 流媒体服务器
+	1. 七牛、腾讯、网易
+	2. red5(java)和FMS商用
+	3. crtmpserver(开源)
+	4. Nginx+RTMP插件(开源)
+
+二. Ubuntu安装
+	1. ubuntu16.04 64位版本
+	2. vmware虚拟机
+		apt-get install openssh-server
+		apt-get update
+
+三. crtmpserver 安装
+	apt-get install wget cmake
+	apt-get install libssl-dev
+	git clone https://github.com/j0sh/crtmpserver.git
+	cd builders/cmake
+	cmake .
+	make
+	./crtmpserver/crtmpserver ./crtmpserver/crtmpserver.lua
+
+四. ffmpeg工具推流测试
+	ffmpeg查看设备  ffmpeg -list_devices true -f dshow -i dummy
+	ffmpeg -f dshow -i video="USB2.0 Camera" -f flv rtmp://192.168.1.44/live/test1
+	ffmpeg -i test.mp4 -f flv rtmp://192.168.1.44/live/test1
+	ffmpeg -i rtsp://nj:nj@192.168.1.108 -an -f flv rtmp://192.168.1.44/live/test1
+	ffmpeg -i rtsp://admin:njzs2014@192.168.1.64:554/ -c copy -f flv
+	rtmp://192.168.1.44/live/test1
+	ffmpeg -f dshow -i video="USB2.0 PC CAMERA" -b:v 800k -r 10 -f flv
+	rtmp://192.168.1.44/myapp
+	使用vlc播放
+	ffplay rtmp://192.168.1.44/live -fflags nobuffer
+	
+	
+	测试:
+		在windows下CMD 执行命令
+		ffmpeg -i ./test.mp4 -f flv rtmp://192.168.163.131/live/test1
+		不重新编码以MP4编码输出:
+		ffmpeg -i ./test.mp4 -c copy -f flv rtmp://192.168.163.131/live/test1
+
+		打开vcl工具->媒体->打开网络串流
+
+
+五. Nginx安装
+	wget http://nginx.org/download/nginx-1.12.2.tar.gz
+	tar -zxvf nginx-1.12.2.tar.gz
+	apt-get install libpcre3-dev
+	apt-get install libssl-dev
+	apt-get install zlib1g-dev
+	./configure
+	
+	确保这三项都安装好
+	Configuration summary
+		+ using system PCRE library
+		+ using system OpenSSL library
+		+ using system zlib library
+
+六. nginx-rtmp源码下载、编译运行（ubuntu）
+	1.下载 nginx-rtmp-module
+	git clone https://github.com/arut/nginx-rtmp-module.git
+	回到nginx-1.12.2源码目录下执行
+	./configure --add-module=/home/dejan/pack/nginx/nginx-rtmp-module
+
+	2.开始编译&安装
+	make
+	make install
+	
+	一般情况下,如果当前系统之前有安装过nginx, make install 并不能替换掉以前的版本. 需要手动删除目录再次 make install重新拷贝即可
+	rm /usr/local/nginx -r
+	make install
+
+	3.安装好开始运行nginx
+	cd /usr/local/nginx/sbin
+	./nginx
+
+七. nginx-rtmp直播和直播状态监听配置并使用ffplay播放直播流
+	1. 进入到nginx配置目录
+		cd /usr/local/nginx/conf
+		vim nginx.conf
+	
+	2. 添加rtmp配置
+		rtmp
+		{
+			server
+			{
+				listen 1935;
+				chunk_size 4096;
+				application live
+				{
+					live on;
+				}
+			}
+		}
+
+	3. 重新加载nginx配置
+		检查配置是否ok
+		nginx -t
+		nginx -s reload
+
+	4. 推流测试
+		ffmpeg -i ./test.mp4 -c copy -f flv rtmp://192.168.163.131/live
+
+	5. rtmp推流状态查看配置
+		1) 进入到nginx配置目录
+		cd /usr/local/nginx/conf
+		vim nginx.conf
+		
+		2) 在http{..}里 添加以下配置
+		server
+		{
+			listen 8080;
+			location /stat {
+				rtmp_stat all;
+				rtmp_stat_stylesheet stat.xsl;
+			}
+			location /stat.xsl {
+				root /home/dejan/pack/nginx/nginx-rtmp-module;
+			}
+		}
+
+		3) 查看 推流状态
+		http://192.168.163.131:8080/stat
+
+		使用 ffplay 播放测试
+		ffplay rtmp://192.168.163.131/live/test1 -fflags nobuffer
+
+
+
+
+
+
+
+
+
+

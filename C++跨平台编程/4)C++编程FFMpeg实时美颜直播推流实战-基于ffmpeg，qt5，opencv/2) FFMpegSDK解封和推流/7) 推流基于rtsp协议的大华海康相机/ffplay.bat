@@ -1,0 +1,1 @@
+ffplay rtmp://192.168.163.131/live -fflags nobuffer

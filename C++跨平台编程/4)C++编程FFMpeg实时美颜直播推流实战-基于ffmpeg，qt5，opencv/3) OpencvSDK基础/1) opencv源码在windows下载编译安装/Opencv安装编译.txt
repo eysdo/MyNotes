@@ -1,0 +1,7 @@
+*Opencv安装编译
+
+一. 下载&安装
+	ffmpeg.club
+	windows下编译(cmake)
+
+
