@@ -213,6 +213,7 @@ int main(int argc, char** argv)
 			// ÍÆÁ÷
 			pack.pts = av_rescale_q(pack.pts, vc->time_base, vs->time_base);
 			pack.dts = av_rescale_q(pack.dts, vc->time_base, vs->time_base);
+			pack.duration = av_rescale_q(pack->duration, vc->time_base, vs->time_base);
 			ret = av_interleaved_write_frame(ic, &pack);
 			if (ret == 0)
 			{
