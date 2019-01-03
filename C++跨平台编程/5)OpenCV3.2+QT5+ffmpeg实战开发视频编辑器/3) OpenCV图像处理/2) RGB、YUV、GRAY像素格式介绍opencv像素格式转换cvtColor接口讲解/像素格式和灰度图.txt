@@ -1,0 +1,4 @@
+* 像素格式和灰度图
+
+	RGB , YUV , GRAY
+	cvtColor(src, img, BGR2GRAY);

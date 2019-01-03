@@ -1,0 +1,6 @@
+* 二值化和阈值
+	
+	THRESH_BINARY       二进制阈值化
+	THRESH_BINARY_INV   反二进制阈值化
+	
+	

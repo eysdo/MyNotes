@@ -1,0 +1,38 @@
+* 图像尺寸调整
+	
+	1. INTER_NEAREST   近邻算法
+		int sx,sy = 0; // 原图对应的坐标
+		float fy = float(src.rows) / out.rows;
+		float fx = float(src.cols) / out.cols;
+		for(int y = 0; y < out.rows; y++){
+			sy = fy*y+0.5;
+			for(int x = 0; x < out.cols; x++){
+				sx = fx*x+0.5;
+				out.at<Vec3b>(y,x) = src.at<Vec3b>(sy,sx);
+			}
+		}
+	
+	
+	2. CV_INTER_LINEAR - 双线性插值(缺省使用)
+		1) 滤波
+			输入图像中像素的小邻域来产生输出图像的方法, 在信号处理中这种方法称为滤波(filtering)。其中, 最常用的是 线性滤波 
+		
+		2) 线性滤波
+			输出像素是输入邻域像素的加权和。
+
+		3) 双线性内插值
+			- 是由源图像位置在它附近的2*2区域4个邻近像素的值通过加权平均计算得出的。
+			- 低通滤波性质, 使高频分量受损, 图像轮廓可能会有一点模糊。
+
+
+
+
+
+
+
+
+
+
+
+
+

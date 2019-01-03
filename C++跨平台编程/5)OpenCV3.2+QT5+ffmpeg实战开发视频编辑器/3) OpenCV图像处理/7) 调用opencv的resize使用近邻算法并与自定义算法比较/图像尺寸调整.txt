@@ -1,0 +1,18 @@
+* 图像尺寸调整
+	
+	1. INTER_NEAREST   近邻算法
+		int sx,sy = 0; // 原图对应的坐标
+		float fy = float(src.rows) / out.rows;
+		float fx = float(src.cols) / out.cols;
+		for(int y = 0; y < out.rows; y++){
+			sy = fy*y+0.5;
+			for(int x = 0; x < out.cols; x++){
+				sx = fx*x+0.5;
+				out.at<Vec3b>(y,x) = src.at<Vec3b>(sy,sx);
+			}
+		}
+	
+	
+	2. CV_INTER_LINEAR - 双线性插值(缺省使用)
+	
+	
