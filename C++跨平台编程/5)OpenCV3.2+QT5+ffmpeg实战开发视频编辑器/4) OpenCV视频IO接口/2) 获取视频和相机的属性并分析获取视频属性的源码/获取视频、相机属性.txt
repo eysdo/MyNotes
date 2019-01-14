@@ -1,0 +1,12 @@
+* 获取视频、相机属性
+
+CAP_PROP_FPS   帧率
+
+CAP_PROP_FRAME_COUNT   总帧数
+
+CAP_PROP_POS_FRAMES    播放帧的位置
+
+CAP_PROP_FRAME_WIDTH   视频帧的宽度
+
+CAP_PROP_FRAME_HEIGHT  视频帧的高度
+

@@ -1,0 +1,5 @@
+*  VideoWriter
+
+-  void write(const Mat&)
+-  CvVideoWriter_FFMPEG::writeFrame
+

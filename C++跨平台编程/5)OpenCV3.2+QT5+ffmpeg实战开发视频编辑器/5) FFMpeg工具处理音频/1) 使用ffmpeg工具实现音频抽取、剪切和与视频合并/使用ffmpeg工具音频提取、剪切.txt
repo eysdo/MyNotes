@@ -1,0 +1,14 @@
+
+
+1. 使用ffmpeg工具抽取音频
+	ffmpeg.exe -i 1.avi -vn 1.mp3
+	-i表示源 -vn 表示不转换视频
+
+2. 使用ffmpeg剪切音频
+	ffmpeg -ss 0:0:30 -t 0:0:20 -i input.mp3 -c copy output.mp3
+	-ss开始的时间  -t 剪切的时长
+
+3. 使用ffmpeg工具音视频合并
+	ffmpeg.exe -i 1.mp3 -i 1.mp4 -c copy out.mp4
+
+

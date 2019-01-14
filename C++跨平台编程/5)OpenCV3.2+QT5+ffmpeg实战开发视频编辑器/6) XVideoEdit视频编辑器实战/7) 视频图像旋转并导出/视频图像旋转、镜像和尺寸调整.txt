@@ -1,0 +1,9 @@
+*  视频图像旋转、镜像和尺寸调整
+
+	rotate
+	
+	flip
+	
+	resize
+	
+	
