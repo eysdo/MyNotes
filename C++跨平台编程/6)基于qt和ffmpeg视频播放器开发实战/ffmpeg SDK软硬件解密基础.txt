@@ -1,0 +1,319 @@
+* ffmpeg SDK软硬件解码基础
+
+解封装、软硬件解码、像素格式转换、重采样、pts/dts、同步策略
+
+1. 解封装
+	av_register_all()          // 注册所有封装器, 也可以单个指定 比如只注册支持MP4的
+	avformat_network_init()    // 可用于直接打开 rtsp摄像机, 还支持http协议
+	avformat_open_input(...)   // 打开文件, 并解析
+	avformat_find_stream_info(...)   // 查找出文件的格式、索引
+	av_find_best_stream(...)   // 解封装之后, 用于对音频、视频 独立处理，找到对应的视频流和音频流
+	AVFormatContext   // 结构体, 封装的上下文 (加解封装时用到)
+	AVStream          // 结构体, AVFormatContext中的 音视频流
+	AVPacket          // 结构体, 解封装后的一个一个的数据包
+	av_read_frame(...)   // 用来读取一个AVPacket, 这一个AVPacket里面包含了 dts/pts、streamIndex(以作对应它是音频还是视频的区分)、是否是关键帧、数据
+
+	1) int avformat_open_input
+		确保 av_register_all() avformat_network_init() 已调用
+		参数:
+		AVFormatContext **ps
+		const char *url       // 输入的资源地址或文件路径
+		AVInputFormat *fmt    // 输入指定的封装格式, 传NULL就可以了让他自己去推导合适相应的符合类型
+		AVDictionary **options  // 字典数组, 一组的key和value设置选项, 这里如果没有参数传递可以传 NULL
+
+
+	2) AVFormatContext
+		结构体成员:
+		AVIOContext *pb;
+		char filename[1024];
+		unsigned int nb_streams;  // AVStream数组的大小
+		AVStream **streams;       // 数组, 存的是 音频和视频信息
+		int64_t duration;   // AV_TIME_BASE (微秒级), 总长度
+		int64_t bit_rate;   // 比特率
+		
+		void avformat_close_input(AVFormatContext **s);  // 用来关闭输入的上下文空间释放
+	
+	
+	3) avformat_close_input
+		释放封装上下文, 并且会把封装上下文指针置0
+
+
+	4) avformat_find_stream_info
+		参数:
+		AVFormatContext *ic      // 封装上下文
+		AVDictionary **options   // 选项参数, 没有设定参数可以传0
+
+
+	5) av_dump_format
+		注意:部分格式的视频在使用该打印信息函数之前没有调用过avformat_find_stream_info(), 还是有部分信息打印不出来! 
+		参数:
+		AVFormatContext *ic  // 封装上下文
+		int index            // 索引, 一般不太重要! 可以传 0 或 1
+		const char *url      // 文件路径地址, 可以不传递给 0 或 NULL即是
+		int is_output        // *这个函数的关键参数, 0输入文件  1输出文件
+
+
+	6) AVStream
+		结构体成员:
+		AVCodecContext *codec; // 过时了
+		AVRational time_base;  // 时间基数 (一个有比例的数,分数-有分子和分母)
+		int64_t duration;   // 总时长(注意:有时候这个值不一定有), duration转毫秒公式: duration * ((double)time_base.num / (double)time_base.den) * 1000
+		int64_t nb_frames;
+		AVRational avg_frame_rate;  // 帧率 fps(有理数表示, 有分子和分母是个分数)
+		AVCodecParameters *codecpar; // 新增用来替代 AVCodecContext *codec (音视频参数)
+
+
+	7) AVCodecParameters
+		结构体成员:
+		enum AVMediaType codec_type;  // 编码的类型, 用于标识音频还是视频
+		enum AVCodecID codec_id;  // 编码格式, 比如: h264、mpeg-4 ...
+		uint32_t codec_tag;  // 用4个字节表示各种编码器, 可以忽略
+		int format; // 像素格式 或 音频的采样格式(样本格式), 对于音视频是 像素格式, 对于音频是 样本格式
+		int width;  // 宽, 只有视频有
+		int height; // 高, 只有视频有
+		uint64_t channel_layout; // 取默认的即是 av_get_default_channel_layout()
+		int channels;    // 声道数
+		int sample_rate; // 样本率(采样率)
+		int frame_size;  // 一帧音频的大小
+
+
+	8) av_find_best_stream()
+		参数:
+		AVFormatContext *ic    // 封装上下文
+		enum AVMediaType type  // 编码的类型, 音频还是视频
+		int wanted_stream_nb   // 期望获取的流编号, 填 -1 自动选择
+		int related_stream     // 取相关流, 填 -1 自动选择
+		AVCodec **decoder_ret  // 编码器返回, 解码的时候用到, 填 NULL 不需要
+		int flags              // 预留参数, 忽略. 填 0
+
+
+	9) av_read_frame()
+		参数:
+		AVFormatContext *s   // 封装上下文
+		AVPacket *pkt        // 输出参数,这个值不能传NULL, 传入必须是一个合法的空间
+		返回值:
+		return 0 is OK, < 0 on error or end of file.
+
+
+	10) AVPacket
+		结构体成员:
+		AVBufferRef *buf;  // 这个空间是用来存储引用计算的
+		int64_t pts;   // pts * (num / den), 显示时间
+		int64_t dts;   // 值跟上面一样, 解码时间. 如果没有B帧的话和pts是一致的. 有B帧的话可能会有差异
+		uint8_t *data; // AVBufferRef内部分配的空间, 注意不能用 free、delete来释放, 要释放一定要调用内部相应的接口进行释放
+		int size;      // data空间的大小
+		int stream_index;  // 流索引
+
+
+	11) AVPacket空间操作函数
+		AVPacket *av_packet_alloc(void);  // 创建并初始化一个AVPacket对象
+		AVPacket *av_packet_clone(const AVPacket *src);  // 先创建一个新的AVPacket,然后再进行计数引用+数据拷贝,使得新的AVPacket指向老的AVPacket同一个data。等同于 av_packet_alloc() + av_packet_ref()
+		int av_packet_ref(AVPacket *dst, const AVPacket *src);  // 浅拷贝, 先是创建新的AVPacket对象然后通过src进行浅拷贝. 引用计数+1
+		void av_packet_unref(AVPacket *pkt);  // 引用计数-1
+		void av_packet_free(AVPacket **pkt);  // 释放使用av_packet_alloc创建的AVPacket, 过程先是调用av_packet_unref(&packet)引用计算-1。只有当引用计数为0时，才会在调用av_packet_free()时释放data
+		void av_init_packet(AVPacket *pkt);   // 初始化packet的值为默认值
+		int av_packet_from_data(AVPacket *pkt, uint8_t *data, int size);  // 初始化一个引用计数的packet，并指定了其数据缓存。缓存需要手工创建，AVPacket自动创建引用计数机制，参数pkt需要事先被av_packet_alloc()。
+		attribute_deprecated
+		int av_copy_packet(AVPacket *dst, const AVPacket *src);  // 这是一个早期的函数, 因性能上存在缺陷已经被抛弃了! 不建议使用!
+
+
+	12) av_seek_frame()
+		参数:
+		AVFormatContext *s   // 封装上下文
+		int stream_index   // 流索引 音频 或视频, 填 -1 默认 (一般是视频)
+		int64_t timestamp  // 时间戳 AVStream.time_base, 移动到哪个时间点位置
+		int flags   // 标志位
+			#define AVSEEK_FLAG_BACKWARD 1 ///< seek backward
+			#define AVSEEK_FLAG_BYTE     2 ///< seeking based on position in bytes
+			#define AVSEEK_FLAG_ANY      4 ///< seek to any frame, even non-keyframes
+			#define AVSEEK_FLAG_FRAME    8 ///< seeking based on frame number
+
+
+2. ffmpeg解码
+	avcodec_register_all();
+	AVCodec *avcodec_find_decoder(enum AVCodecID id);
+	AVCodec *avcodec_find_decoder_by_name(const char *name);
+	avcodec_find_decoder_by_name("h264_mediacodec");
+
+
+	1) AVCodecContext
+		相关空间操作函数:
+			AVCodecContext *avcodec_alloc_context3(const AVCodec *codec);
+			void avcodec_free_context(AVCodecContext **avctx);
+			int avcodec_open2(AVCodecContext *avctx, const AVCodec *codec, AVDictionary **options);
+				/libavcodec/options_table.h
+		结构体成员:
+		int thread_count;
+		AVRational time_base;
+
+
+	2) avcodec_parameters_to_context()
+		参数:
+		AVCodecContext *codec         // 编码器上下文
+		const AVCodecParameters *par  // 编码参数
+
+
+	3) AVFrame
+		相关空间操作函数:
+			AVFrame *frame = av_frame_alloc();
+			void av_frame_free(AVFrame **frame);
+			int av_frame_ref(AVFrame *dst, const AVFrame *src);
+			AVFrame *av_frame_clone(const AVFrame *src);
+			void av_frame_unref(AVFrame *frame);
+		结构体成员:
+		uint8_t *data[AV_NUM_DATA_POINTERS];  // 视频或音频数据
+		int linesize[AV_NUM_DATA_POINTERS];   // 如果是视频的话是一行的大小, 音频则是一个通道的大小
+		int width, height;
+		int nb_samples;   // 单通道的样本数量
+		int64_t pts;      
+		int64_t pkt_dts;  
+		int sample_rate;
+		uint64_t channel_layout;
+		int channels;
+		int format;  // AVPixelFormat AVSampleFormat  像素格式, 用来区分音频或视频
+
+		补充 linesize结构:
+			视频 [0=>Y, 1=>U, 2=>V, 3=>NULL]
+			音频 [0=>左声道(planner), 1=>右声道, 2=>NULL]
+			RGB交错 [0=>RGBRGBRGB, 1=>NULL]
+
+
+	4) avcodec_send_packet()
+		参数:
+		AVCodecContext *avctx
+		const AVPacket *avpkt
+
+
+	5) avcodec_receive_frame()
+		参数:
+		AVCodecContext *avctx
+		AVFrame *frame
+
+
+3. 视频像素和尺寸转换
+	struct SwsContext *sws_getContext();
+	struct SwsContext *sws_getCachedContext();
+	int sws_scale();
+	void sws_freeContext();
+
+
+	1) sws_getContext()
+		参数:
+		int srcW
+		int srcH
+		enum AVPixelFormat srcFormat
+		int dstW
+		int dstH
+		enum AVPixelFormat dstFormat
+		int flags
+		SwsFilter *srcFilter
+		SwsFilter *dstFilter
+		const double *param
+
+
+	2) sws_getCachedContext()
+		参数:
+		struct SwsContext *context   // 像素格式和尺寸转换上下文, 传 NULL会新创建
+		int srcW, int srcH   // 输入的宽高
+		enum AVPixelFormat srcFormat   // 输入的格式 YUV420P
+		int dstW, int dstH   // 输出的宽高
+		enum AVPixelFormat dstFormat   // 输出的格式 RGBA
+		int flags   // 算法 SWS_BILINEAR
+		SwsFilter *srcFilter   // 过滤器, 不需要可以传 NULL
+		SwsFilter *dstFilter   // 过滤器, 不需要可以传 NULL
+		const double *param    // 算法相关参数, 使用默认的直接传NULL
+
+
+	3) sws_getContext()、sws_getCachedContext() flags参数
+		算法:
+		#define SWS_FAST_BILINEAR     1
+		#define SWS_BILINEAR          2
+		#define SWS_BICUBIC           4
+		#define SWS_X                 8
+		#define SWS_POINT          0x10
+		#define SWS_AREA           0x20
+		#define SWS_BICUBLIN       0x40
+		#define SWS_GAUSS          0x80
+		#define SWS_SINC          0x100
+		#define SWS_LANCZOS       0x200
+		#define SWS_SPLINE        0x400
+
+
+	4) sws_scale()
+		参数:
+		struct SwsContext *c   // 像素格式和尺寸转换上下文
+		const uint8_t *const srcSlice[]   // 输入数据(frame->data), 源数据的数组, 是一个指针数组
+		const int srcStride[]   // 输入行大小(frame->linesize), 源数据一行的长度
+		int srcSliceY   // 切片的位置 0
+		int srcSliceH   // 输入高度(frame->height)
+		uint8_t *const dst[]   // 输出数据
+		const int dstStride[]  // 输出数据一行的大小
+
+
+	5) sws_freeContext()
+		参数:
+		struct SwsContext *swsContext
+
+
+4. 音频重采样
+	SwrContext *swr_alloc(void);
+	SwrContext *swr_alloc_set_opts();
+	int swr_init(struct SwrContext *s);
+	void swr_free(struct SwrContext **s);
+	int swr_convert();
+
+
+	1) swr_alloc_set_opts()
+		参数:
+		struct SwrContext *s   // 重采样上下文
+		int64_t out_ch_layout  // 多少个声道, 立体(双声道), 单声道..
+		enum AVSampleFormat out_sample_fmt   // 输出的样本格式 
+		int out_sample_rate     // 输出的样本率
+		int64_t  in_ch_layout   // 输入的声道类型, 立体(双声道), 单声道..
+		enum AVSampleFormat  in_sample_fmt   // 输入的样本格式 
+		int  in_sample_rate     // 输入的样本率 
+		int log_offset   // 日志, 不需要可以传 0
+		void *log_ctx    // 日志, 不需要可以传 0
+
+
+	2) int swr_init()
+		参数:
+		struct SwrContext *s
+
+
+	3) void swr_free()
+		参数:
+		struct SwrContext **s
+
+
+	4) swr_convert()
+		参数:
+		struct SwrContext *s   // 重采样上下文
+		uint8_t **out   // 输出数据
+		int out_count   // 输出的单通道样本数量(frame->nb_samples)
+		const uint8_t **in   // 输入数据((const uint8_t**)frame->data)
+		int in_count   // 输入的单通道样本数量(frame->nb_samples)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
