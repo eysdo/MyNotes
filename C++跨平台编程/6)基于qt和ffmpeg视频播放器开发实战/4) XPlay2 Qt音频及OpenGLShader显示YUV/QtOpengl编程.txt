@@ -1,0 +1,106 @@
+* QtOpengl编程
+
+	QOpenGLWidget (与界面如何交互)
+	Program GLSL 顶点和片元 (如何与显卡交互)
+	材质Texture (如何写入ffmpeg数据)
+
+
+1. QOpenGLWidget
+	为什么用Qt的opengl?  简单
+	void paintGL();
+	void initializeGL();
+	void resizeGL(int width, int height);
+	QOpenGLFunctions
+
+
+2. QGLShaderProgram
+	编译运行shader
+	addShaderFromSourceCode
+	bindAttributeLocation   设置传入的变量
+	uniformLocation   获取变量
+
+
+3. 着色器语言GLSL
+	1) 顶点着色器是针对每个顶点执行一次, 用于确定顶点的位置; 片元着色器是针
+	   对每个片元(可以理解为每个像素)执行一次, 用于确定每个片元(像素)的颜色.
+
+	2) GLSL的基本语法与C基本相同
+
+	3) 它完美的支持向量和矩阵操作
+
+	4) GLSL提供了大量的内置函数来提供丰富的扩展功能
+
+	5) 它是通过限定符操作来管理输入输出类型的
+
+
+4. 顶点信息
+	float *vertexData = new float[12]{
+		1.0f, -1.0f, 0.0f,
+		-1.0f, -1.0f, 0.0f,
+		1.0f, 1.0f, 0.0f,
+		-1.0f, 1.0f, 0.0f
+	};
+
+
+5. 材质坐标信息
+	float *textureVertexData = new float[8]{
+		1.0f, 0.0f, // 右下
+		0.0f, 0.0f, // 左下
+		1.0f, 1.0f, // 右上
+		0.0f, 1.0f  // 左上
+	};
+
+
+6. 传入顶点和材质坐标
+	glVertexAttribPointer(ATTRIB_VERTEX, 2, GL_FLOAT, 0, 0, vertexVertices);
+	glEnableVertexAttribArray(ATTRIB_VERTEX);
+	glVertexAttribPointer(ATTRIB_TEXTURE, 2, GL_FLOAT, 0, 0, textureVertices);
+	glEnableVertexAttribArray(ATTRIB_TEXTURE);
+
+
+7. 三种GLSL变量类型
+	varying 顶点与片元共享
+	attribute 顶点使用, 由bindAttributeLocation传入
+	uniform 程序传入 uniformLocation获取地址
+	glUniform1i(textureUniformY, 0); 设置
+
+
+8. 创建材质
+	glGenTextures(1, t);
+	glBindTexture(GL_TEXTURE_2D, *t);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	1) glTexParameteri()
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		GL_TEXTURE_2D:操作2D文理
+		GL_TEXTURE_MIN_FILTER:缩小过滤
+		GL_TEXTURE_MAG_FILTER:放大过滤
+		GL_LINEAR:线性过滤, 使用距离当前渲染像素中心最近的4个纹素加权平均值.
+
+
+9. 写入和绘制材质
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, id_y);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, pixel_w, pixel_h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, plane[0]);
+	glUniform1i(textureUniformY, 0);
+
+	1) glTexImage2D()
+		参数:
+		GLenum target        // 创建纹理
+		GLint level          // 细节 0默认
+		GLint internalformat // GPU内部格式
+		GLsizei width
+		GLsizei height
+		GLint border         
+		GLenum format        // 数据类型
+		GLenum type          // 像素的数据类型
+		const GLvoid * pixels
+
+
+
+
+
+
+

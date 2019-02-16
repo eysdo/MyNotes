@@ -1,0 +1,30 @@
+* Qt“Ù∆µ¬º÷∆
+
+1. QAudioFormat
+	setSampleRate setSampleSize
+	setChannelCount setCodec("audio/pcm")
+	setByteOrder(QAudioFormat::LittleEndian)
+	setSampleType(QAudioFormat::UnsignedInt)
+
+
+2. QAudioOutput
+	QIODevice* start()
+	suspend()
+	resume()
+	bufferSize()
+	bytesFree()
+	periodSize()
+
+
+3. QIODevice
+	qint64 write(const char *data, qint64 len);
+
+
+
+
+
+
+
+
+
+
