@@ -46,12 +46,29 @@ Author : Dejan       QQ: 673008865
 ### 2. 开始第一个Lua程序
 
 ```cpp
-// main.cpp
+// lua.h
+#ifndef _LUA_H_
+#define _LUA_H_
+
+#ifdef __cplusplus
 extern "C" {
+#endif
+
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
+
+#ifdef __cplusplus
 }
+#endif
+
+
+#endif // !_LUA_H_
+```
+
+```cpp
+// main.cpp
+#include <lua.h>
 #pragma comment(lib, "lua.lib")
 
 int main(int argc, char **argv)
@@ -706,14 +723,24 @@ extern "C"
 
 int CTestArr(lua_State *L)
 {
-	int len = luaL_getn(L, 1);
+	int len = luaL_getn(L, 1); // 5.1版本以上luaL_getn改为lua_objlen，luaL_setn废弃
 	for (int i = 1; i <= len; i++)
 	{
-		lua_pushnumber(L, i); // 2
-		lua_gettable(L, 1); // pop index push table[i]
+        // 将key放到栈顶，这个key为i。如果key是字符串，那就用lua_pushstring
+		lua_pushnumber(L, i); // 当前i在栈顶-1(2)位置
+		lua_gettable(L, 1); // 当前表在key的下方索引为-2(1)位置
 		size_t size;
 		printf("%s\n", lua_tolstring(L, -1, &size));
-		lua_pop(L, 1);
+		lua_pop(L, 1); // 弹出栈顶-1 key
+        //--------------------------
+        // 正索引    值     负索引
+        //   2      i       -1
+        //   1     table    -2
+        //--------------------------
+        // lua_pop(L,1)之后,相当于恢复状
+        // 正索引    值     负索引
+        //   1     table    -1
+        //--------------------------
 	}
 	return 0;
 }
@@ -772,20 +799,48 @@ extern "C"
 int CTestTable(lua_State *L)
 {
 	lua_pushnil(L);
-	while (lua_next(L, 1) != 0)
+    //------------------
+	// 正索引  值    负索引
+	//   2    nil      -1
+	//   1    table    -2
+	//------------------
+	while (lua_next(L, 1) != 0) // 同 lua_next(L, -2),读到末尾会自动把栈索引-1回收掉
 	{
-		// push key , push value
+		//------------------
+		// 正索引   值    负索引
+		//   3     value    -1
+		//   2     key      -2
+		//   1     table    -3
+		//------------------
 		printf("key = %s ", lua_tostring(L, -2));
 		printf("value = %s \n", lua_tostring(L, -1));
 		lua_pop(L, 1);
+        //------------------
+		// 正索引   值    负索引
+		//   2     key      -1
+		//   1     table    -2
+		//------------------
 	}
+	//------------------
+	// 正索引   值    负索引
+	//   1     table    -1
+	//------------------
 	return 0;
 }
 
 /* 获取一个 */
 int CTestTableOne(lua_State *L)
 {
-	lua_getfield(L, 1, "name");
+    //------------------
+	// 正索引   值    负索引
+	//   1     table    -1
+	//------------------
+	lua_getfield(L, 1, "name"); // 同 lua_getfield(L, -1, "name"),获取到value并push到栈顶
+    //------------------
+	// 正索引   值    负索引
+    //   2     value    -1
+	//   1     table    -2
+	//------------------
 	size_t len;
 	printf("CTestTableOne: name = %s\n", lua_tolstring(L, -1, &len));
 	return 0;
@@ -846,12 +901,28 @@ extern "C"
 /* 获取所有 */
 int CTestTable(lua_State *L)
 {
-	luaL_checktype(L, 1, LUA_TTABLE);
-	if (lua_type(L, 2) != LUA_TNUMBER)
+    //--------------------
+	// 正索引   值       负索引
+    //   2     param2    -1
+    //   1     param1    -2
+    //--------------------
+	luaL_checktype(L, 1, LUA_TTABLE); // 同 luaL_checktype(L,-2,LUA_TTABLE);
+	if (lua_type(L, 2) != LUA_TNUMBER) // 同 lua_type(L, -1)
 	{
 		printf("param 2 is not number!!\n");
 	}
-	lua_getfield(L, 1, "name");
+    //---------------------------
+	// 正索引   值            负索引
+    //   2     param2         -1
+    //   1     param1(table)  -2
+    //---------------------------
+	lua_getfield(L, 1, "name"); // 获取到value并push到栈顶
+    //---------------------------
+	// 正索引   值            负索引
+    //   3     value          -1
+    //   2     param2         -2
+    //   1     param1(table)  -3
+    //---------------------------
 	printf("name = %s\n", lua_tostring(L, -1));
 
 	return 0;
@@ -913,14 +984,40 @@ extern "C"
 int CTestRe(lua_State *L)
 {
 	//lua_pushstring(L, "return value");
+    
 	lua_newtable(L);
+    //----------------------
+	// 正索引   值    负索引
+	//   1     table    -1
+	//----------------------
+    
 	// 插入key value
 	lua_pushstring(L, "name");
 	lua_pushstring(L, "Dejan");
-	lua_settable(L, -3);
+    //----------------------
+	// 正索引    值     负索引
+	//   3     "Dejan"   -1
+	//   2     "name"    -2
+	//   1      table    -3
+	//----------------------
+	lua_settable(L, -3); // 同 lua_settable(L,1),添加到表后会自动清理索引-1、-2
+    //----------------------
+	// 正索引    值       负索引
+	//   1      table[1]    -1
+	//----------------------
 	lua_pushstring(L, "age");
 	lua_pushnumber(L, 20);
-	lua_settable(L, -3);
+    //----------------------
+	// 正索引    值     负索引
+	//   3       20       -1
+	//   2      "age"     -2
+	//   1     table[1]   -3
+	//----------------------
+	lua_settable(L, -3); // 同 lua_settable(L,1),添加到表后会自动清理索引-1、-2
+    //----------------------
+	// 正索引    值       负索引
+	//   1      table[2]    -1
+	//----------------------
 
 	return 1;
 }
@@ -998,7 +1095,7 @@ int main()
 		return -1;
 	}
 
-	lua_getglobal(lua, "width");
+	lua_getglobal(lua, "width"); // 读取lua脚本中全局变量的值并push到栈顶 -1
 	int width = lua_tonumber(lua, -1);
 	lua_pop(lua, 1);
 	printf("width = %d\n", width);
@@ -1053,18 +1150,24 @@ int main()
 		return -1;
 	}
 
-	lua_getglobal(lua, "width");
+	lua_getglobal(lua, "width"); // 读取lua脚本中全局变量width的值并push到栈顶 -1
 	int width = lua_tonumber(lua, -1);
-	lua_pop(lua, 1);
+	lua_pop(lua, 1); // 弹出一个栈顶元素 -1
 	printf("width = %d\n", width);
 
-	lua_getglobal(lua, "conf");
-	lua_getfield(lua, -1, "titlename");
-	printf("title = %s\n", lua_tostring(lua, -1));
+	lua_getglobal(lua, "conf"); // 读取lua脚本中全局变量conf的值并push到栈顶 -1
+	lua_getfield(lua, -1, "titlename"); // 读取conf["titlename"]值并push到栈顶 -1
+    //---------------------
+    // 正索引   值      负索引
+    //  ...   value     -1
+    // 	...   conf      -2
+    //  ...   ...       ...
+    //---------------------
+	printf("title = %s\n", lua_tostring(lua, -1)); // conf["titlename"]值
 	lua_pop(lua, 1);
 	lua_getfield(lua, -1, "height");
 	printf("height = %d\n", (int)lua_tonumber(lua, -1));
-	lua_pop(lua, 2);
+	lua_pop(lua, 2); // 弹出2个栈顶元素
 
 	lua_close(lua);
 
@@ -1107,8 +1210,8 @@ int main()
 	luaopen_base(lua);
 
 	// 设置一个lua全局变量
-	lua_pushstring(lua, "Hello");
-	lua_setglobal(lua, "test");
+	lua_pushstring(lua, "Hello"); // push 到栈顶 -1
+	lua_setglobal(lua, "test"); // 获取到栈顶-1索引的值设置成lua全局变量,并自动回收栈顶-1元素
 
 	// 载入脚本
 	if (luaL_loadfile(lua, "main.lua"))
@@ -1162,16 +1265,40 @@ int main()
 	luaopen_base(lua);
 
 	// C++给lua传递表
-	lua_newtable(lua);
+	lua_newtable(lua); // 栈顶创建一个表 -1
+    //-------------------
+    // 正索引   值    负索引
+    //  ...   table   -1
+    //-------------------
 	lua_pushstring(lua, "name");
 	lua_pushstring(lua, "Dejan");
-	lua_settable(lua, -3);
+    //-------------------
+    // 正索引    值     负索引
+    //  ...   "Dejan"   -1
+    //  ...   "name"    -2
+    //  ...    table    -3
+    //-------------------
+	lua_settable(lua, -3); // 将 "name"=>"Dejan" 添加到索引-3表中,并自动清理-1、-2索引元素
+    //------------------------
+    // 正索引    值        负索引
+    //  ...    table[1]    -1
+	//------------------------
 
 	lua_pushstring(lua, "age");
 	lua_pushnumber(lua, 20);
-	lua_settable(lua, -3);
+    //----------------------
+    // 正索引   值       负索引
+    //  ...    20        -1
+    //  ...   "age"      -2
+    //  ...    table[1]  -3
+    //----------------------
+	lua_settable(lua, -3); // 将 "age"=>20 添加到索引-3表中,并自动清理-1、-2索引元素
+    //------------------------
+    // 正索引     值       负索引
+    //  ...    table[2]    -1
+	//------------------------
 
-	lua_setglobal(lua, "user");
+	lua_setglobal(lua, "user"); // 获取到栈顶-1索引元素设置为lua全局变量,并自动回收栈顶-1元素
 
 	// 载入脚本
 	if (luaL_loadfile(lua, "main.lua"))
@@ -1241,8 +1368,8 @@ int main()
 		return -1;
 	}
 
-	lua_getglobal(lua, "event");
-	lua_pcall(lua, 0, 0, 0);
+	lua_getglobal(lua, "event"); // 获取lua脚本函数event(),并push到栈顶 -1
+	lua_pcall(lua, 0, 0, 0); // 执行函数event(),并自动回收栈顶-1元素
 
 	lua_close(lua);
 	getchar();
@@ -1299,8 +1426,9 @@ int main()
 	lua_getglobal(lua, "event2");
 	if (lua_pcall(lua, 0, 0, 0) != 0)
 	{
+        // lua错误信息会push到栈顶 -1
 		printf("call event failed %s\n", lua_tostring(lua, -1));
-		lua_pop(lua, 1);
+		lua_pop(lua, 1); // 获取完错误信息后也需要弹出栈顶 -1
 	}
 	printf("top is %d\n", lua_gettop(lua));
 
@@ -1356,15 +1484,21 @@ int main()
 	}
 
 	printf("top is %d\n", lua_gettop(lua));
-	lua_getglobal(lua, "event");
+	lua_getglobal(lua, "event"); // 获取lua脚本函数event(),并push到栈顶 -1
 	lua_pushstring(lua, "key");
-	if (lua_pcall(lua, 1, 1, 0) != 0)
+    //---------------------
+    // 正索引     值      负索引
+    //  ...     "key"     -1
+    //  ...   function    -2
+    //---------------------
+	if (lua_pcall(lua, 1, 1, 0) != 0) // lua_pcall(lua, [参数个数], [返回值个数], [错误处理函数索引]),会自动回收索引-1、-2元素
 	{
 		printf("call event failed %s\n", lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 	}
 	else
 	{
+        // 执行成功, push返回值到栈顶 -1
 		printf("lua return:%s\n", lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 	}
@@ -1424,11 +1558,19 @@ int main()
 	}
 
 	printf("top is %d\n", lua_gettop(lua));
-	int errfunc = lua_gettop(lua);
-	lua_getglobal(lua, "ferror");
-	errfunc++;
-	lua_getglobal(lua, "event");
+	int errfunc = lua_gettop(lua); // 获得当前栈顶元素正数索引 2
+	lua_getglobal(lua, "ferror"); // 获取lua脚本函数ferror(),并push到栈顶 -1
+	errfunc++; // 得到ferror()在lua堆栈中的正数索引 3
+	lua_getglobal(lua, "event"); // 获取lua脚本函数event(),并push到栈中
 	lua_pushstring(lua, "key");
+    //------------------------
+    // 正索引      值      负索引
+    //   5      "key"      -1
+    //   4      event()    -2
+    //   3     ferror()    -3
+    //   ...      ...      ...
+    //------------------------
+    // lua_pcall(lua, [参数个数], [返回值个数], [错误处理函数索引]),会自动回收索引-1、-2元素
 	if (lua_pcall(lua, 1, 1, errfunc) != 0)
 	{
 		printf("call event failed %s\n", lua_tostring(lua, -1));
@@ -1436,10 +1578,11 @@ int main()
 	}
 	else
 	{
+        // 执行成功, push返回值到栈顶 -1
 		printf("lua return:%s\n", lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 	}
-	lua_pop(lua, 1);
+	lua_pop(lua, 1); // 弹出栈顶元素 ferror()
 	printf("top is %d\n", lua_gettop(lua));
 
 	lua_close(lua);
@@ -1501,17 +1644,43 @@ int main()
 	}
 
 	printf("top is %d\n", lua_gettop(lua));
-	int errfunc = lua_gettop(lua);
-	lua_getglobal(lua, "ferror");
-	errfunc++;
-	lua_getglobal(lua, "event");
+	int errfunc = lua_gettop(lua); // 获得当前栈顶元素正数索引 2
+	lua_getglobal(lua, "ferror"); // 获取lua脚本函数ferror(),并push到栈顶 -1
+	errfunc++; // 得到ferror()在lua堆栈中的正数索引 3
+	lua_getglobal(lua, "event"); // 获取lua脚本函数event(),并push到栈中
 	lua_pushstring(lua, "key");
+    //------------------------
+    // 正索引      值      负索引
+    //   5      "key"      -1
+    //   4      event()    -2
+    //   3     ferror()    -3
+    //   ...      ...      ...
+    //------------------------
 
 	lua_newtable(lua);
 	lua_pushstring(lua, "name");
 	lua_pushstring(lua, "Dejan");
-	lua_settable(lua, -3);
+    //------------------------
+    // 正索引      值      负索引
+    //   7      "Dejan"    -1
+    //   6      "name"     -2
+    //   6      table      -3
+    //   5      "key"      -4
+    //   4      event()    -5
+    //   3     ferror()    -6
+    //   ...      ...      ...
+    //------------------------
+	lua_settable(lua, -3); // 将 "name"=>"Dejan"添加到表 -3,并自动回收索引-1、-2元素
+    //------------------------
+    // 正索引      值      负索引
+    //   6      table[1]   -1
+    //   5      "key"      -2
+    //   4      event()    -3
+    //   3     ferror()    -4
+    //   ...      ...      ...
+    //------------------------
 
+    // lua_pcall(lua, [参数个数], [返回值个数], [错误处理函数索引]),会自动回收索引-1、-2、-3元素
 	if (lua_pcall(lua, 2, 1, errfunc) != 0)
 	{
 		printf("call event failed %s\n", lua_tostring(lua, -1));
@@ -1519,11 +1688,17 @@ int main()
 	}
 	else
 	{
-		lua_getfield(lua, -1, "id");
+        // 执行成功, push返回值到栈顶 -1
+		lua_getfield(lua, -1, "id"); // 获得 table["id"]的值并push到栈顶 -1
+        //---------------------
+        // 正索引    值     负索引
+        //  ...    value    -1
+        //  ...    table    -2
+        //---------------------
 		printf("return table id is %d\n", (int)lua_tonumber(lua, -1));
-		lua_pop(lua, 2);
+		lua_pop(lua, 2); // 弹出栈顶元素 -1、-2
 	}
-	lua_pop(lua, 1);
+	lua_pop(lua, 1); // 弹出栈顶元素 ferror()
 	printf("top is %d\n", lua_gettop(lua));
 
 	lua_close(lua);
