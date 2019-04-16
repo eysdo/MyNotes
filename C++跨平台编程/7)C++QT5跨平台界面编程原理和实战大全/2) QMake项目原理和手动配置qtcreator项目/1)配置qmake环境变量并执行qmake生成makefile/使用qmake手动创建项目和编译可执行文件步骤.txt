@@ -1,0 +1,16 @@
+1. 创建项目 testqmake.pro、main.cpp文件
+	-- testqmake.pro文件内容
+	SOURCES += main.cpp
+	CONFIG  += console
+	-- testqmake.pro文件内容 End
+
+
+2. 生成 makefile 文件
+	- 当前路径下打开 CMD
+	> qmake -o makefile testqmake.pro
+
+
+3. 生成 exe文件,生成的可执行文件在 ./debug目录下
+	> jom /f makefile.Debug
+
+

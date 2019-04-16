@@ -1,0 +1,4 @@
+
+1. Q_OBJECT说明
+	手动创建信号 signals
+	手动创建槽 public slots:

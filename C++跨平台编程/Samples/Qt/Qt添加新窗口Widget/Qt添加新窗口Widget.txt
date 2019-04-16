@@ -1,0 +1,22 @@
+
+1. 创建Qt-GUI-Project, VS2015 -> 项目 -> Add Qt Class.. -> QtGUIClass
+
+2. main.cpp
+	#include "qt_test.h"
+	#include <QtWidgets/QApplication>
+	#include "win2.h" // 新窗口类
+
+	int main(int argc, char *argv[])
+	{
+		QApplication a(argc, argv);
+
+		qt_test w;
+		w.setWindowTitle(QString::fromLocal8Bit("窗口1"));
+		w.show(); // 窗口1
+
+		win2 w2;
+		w2.setWindowTitle(QString::fromLocal8Bit("窗口2"));
+		w2.show(); // 窗口2
+
+		return a.exec();
+	}
