@@ -1,0 +1,12 @@
+[
+	{
+		"id":1,
+		"method":"GET",
+		"pattern":".*?\\.(php|jsp)$|.*?\\.(php|jsp)\\?"
+	},
+	{
+		"id":2,
+		"method":"GET",
+		"pattern":".*?\\.(rar|zip)$|.*?\\.(rar|zip)\\?"
+	}
+]
