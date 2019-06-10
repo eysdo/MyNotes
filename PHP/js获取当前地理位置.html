@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>js获取当前地理位置</title>
+</head>
+<body>
+当前地理位置:
+<span id="province"> </span>
+<span id="city"> </span>
+<span id="district"> </span>
+<span id="street"> </span>
+<br/><br/><br/>
+经度: <span id="longitude"> </span><br/>
+纬度: <span id="latitude"> </span>
+
+</body>
+<script src="https://cdn.bootcss.com/jquery/1.11.1/jquery.min.js"></script>
+<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=S9elagVx45kzx2ABnGqXPRTCfs1a3FiM"></script>
+<script type="text/javascript" src="http://developer.baidu.com/map/jsdemo/demo/convertor.js"></script>
+<script>
+window.BMap = BMap /* 全局对象 */
+
+$(function(){
+    var geolocation = new BMap.Geolocation();
+
+    geolocation.enableSDKLocation(); //允许SDK辅助
+    geolocation.getCurrentPosition(function (res) {
+        if(this.getStatus() == 0){
+            console.log(res);
+
+            // 获得地址信息
+            $('#province').html(res.address.province);// 省 province
+            $('#city').html(res.address.city);// 市 city
+            $('#district').html(res.address.district);// 区 district
+            $('#street').html(res.address.street);// 街道 street
+
+            $('#longitude').html(res.longitude);// 经度 longitude
+            $('#latitude').html(res.latitude);// 纬度 latitude
+        }
+    },{enableHighAccuracy: true});
+});
+
+</script>
+</html>
