@@ -1,0 +1,116 @@
+Qt5.11.2 & VS2015 & 32位版本静态编译及使用 - Author: Dejan
+
+
+
+一、下载源码包(qt-everywhere-src-5.11.2.zip)
+	Qt官网地址：http://download.qt.io/archive/qt/5.11/5.11.2/single/
+	百度云盘: https://pan.baidu.com/s/1bUW4lwGoKvXBgTT3kVx9Gg     提取码：trgt
+
+	注: 下载后是一个压缩文件，将它解压到一个空间较大的磁盘下面。一会静态编译需要占用大量磁盘空间。（谨慎起见，请至少保证该磁盘下有10G左右空间。）
+
+	已编译好的Qt5.11.2静态编译版下载(Dejan编译): 
+	百度云盘: https://pan.baidu.com/s/1003AUxP4v5IKib74H9XanQ     提取码：a2pd
+
+二、编译环境
+	Ruby version 1.9.3 or later
+	Perl version 5.12 or later
+	Python version 2.7.5
+	
+	Visual Studio Tools - VS2015 开发人员命令提示 (x32位)
+
+三、静态编译配置
+	使用编辑器打开解压后的Qt源码文件夹下的 /qtbase/mkspecs/common/msvc-desktop.conf
+	找到以下标志。将原来的：
+	```
+	QMAKE_CFLAGS_RELEASE    = $$QMAKE_CFLAGS_OPTIMIZE -MD
+	QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO += $$QMAKE_CFLAGS_OPTIMIZE -Zi -MD
+	QMAKE_CFLAGS_DEBUG      = -Zi -MDd
+	```
+	修改成：
+	```
+	QMAKE_CFLAGS_RELEASE    = $$QMAKE_CFLAGS_OPTIMIZE -MT
+	QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO += $$QMAKE_CFLAGS_OPTIMIZE -Zi -MT
+	QMAKE_CFLAGS_DEBUG      = -Zi -MTd
+	```
+	PS: 即将MD改成MT，MDd改成MTd。
+
+四、编译源码库
+	1) 首先执行configure命令。复制并执行以下命令
+	```
+	configure.bat -mp -confirm-license -opensource -platform win32-msvc -debug-and-release -static -force-asserts -prefix E:\Qt5.11.2\Qt-msvc2015_static -static-runtime -silent -opengl desktop -qt-sqlite -qt-pcre -qt-zlib -qt-freetype -qt-harfbuzz -qt-libpng -qt-libjpeg -nomake examples -nomake tests
+	```
+		-platform选项设置主机平台和用于构建Qt源码的编译器（对于Windows机器，可以使用MinGW或Visual Studio工具链来编译Qt）
+		-static 选项表示编译静态库；
+		-debug-and-release 当然如果你只需要release版本，此选项可以改成"-release"
+		-prefix 该选项是用于指定编译完后的安装目录，此目录不需要事先创建，建议路径不要太长。
+		-qt 指定编译一些第三方库。
+	PS: 这个过程不会太久，很快就执行完成。
+
+	2) 执行 nmake (PS: 执行耗时至少2小时以上! 这时候可以先去喝杯咖啡或者做做其他事情~~)
+	3) nmake 执行完毕之后，最后再输入nmake install安装。
+		如果没有意外，那么我们就会在之前设定好的路径下看到编译好的文件。
+		路径: E:\Qt5.11.2\Qt-msvc2015_static
+	
+	PS: 至此，整个Qt源码编译过程也就结束了
+
+五、VS2015 使用和配置
+	1) 安装 vs2015中Qt插件 "Qt Visual Studio Tools"
+
+	2) 打开VS2015, 点击菜单栏上的“Qt VS Tools > Qt Options”打开Qt选项窗口
+		点击"Add"按钮, 把编译好的Qt版本(E:\Qt5.11.2\Qt-msvc2015_static)添加进来。
+		PS: 如果前面开发已经在VS2015上使用过其他版本, 点击菜单栏上的“Qt VS Tools > Qt Project Settings”中进行Qt版本切换。
+
+	3) VS2015 项目中使用Qt静态编译版
+		1. 因为我们编译的Qt5.11.2的VC运行库是MT和MTd，工程向导创建的缺省是MD和MDd。也就是我们需要把运行库对应的值改了。
+			项目属性 > C/C++ > 代码生成 > 运行库   改   多线程(/MT)
+
+		2. LINK : warning LNK4098: 默认库“LIBCMT”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
+			原因及解决方法：在同一个项目中，所有的源文件必须链接相同的VC运行时库。如果某一文件用了MTd版本，
+			而其他文件用MT版本的库，也就是说用了不同的库，就会导致这个警告的出现。
+
+			添加一下命令行可解决：
+			项目属性 > 链接器 > 命令行(其他选项)
+			```
+			/NODEFAULTLIB:"libcmt.lib" 
+			```
+
+		3. 无法解析的外部符号 错误解决
+			项目属性 > 链接器 > 常规 > 附加库目录
+			```
+			$(QTDIR)\lib; $(QTDIR)\plugins\imageformats; $(QTDIR)\plugins\platforms;%(AdditionalLibraryDirectories)
+			```
+
+		4. 附加依赖项 添加
+			```
+			Qt5AccessibilitySupport.lib;Qt5Network.lib;qtpcre2.lib;qtmain.lib;qwindows.lib;Qt5Widgets.lib;Qt5Core.lib;Qt5Gui.lib;Qt5PlatformCompositorSupport.lib;Qt5EventDispatcherSupport.lib;Qt5FontDatabaseSupport.lib;Qt5ThemeSupport.lib;Qt5WindowsUIAutomationSupport.lib;qgif.lib;qico.lib;qjpeg.lib;qtfreetype.lib;qtharfbuzz.lib;qtlibpng.lib;
+			```
+
+		5. 在main.cpp文件中加入代码
+			```
+			#pragma comment(lib, "version.lib")
+			#pragma comment(lib, "Netapi32.lib")
+			#pragma comment(lib, "userenv.lib")
+			#pragma comment(lib, "msvcrt.lib")
+			#pragma comment(lib, "Dwmapi.lib")
+			#pragma comment(lib, "wtsapi32.lib")
+			#pragma comment(lib, "Wsock32.lib") 
+			#pragma comment(lib, "Imm32.lib") 
+			#pragma comment(lib, "Winmm.lib") 
+			#pragma comment(lib, "ws2_32.lib")
+			#pragma comment(lib, "Gdi32.lib")
+			#pragma comment(lib, "Advapi32.lib")
+			#pragma comment(lib, "Shell32.lib")
+			#include <QtCore/QtPlugin>
+			Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+			```
+
+
+
+
+
+
+
+
+
+
+
