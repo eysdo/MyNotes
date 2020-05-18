@@ -6,45 +6,45 @@
 using namespace std;
 using namespace this_thread;
 
-atomic<bool> ready = false; // ÊÇ·ñÇÀÏì
+atomic<bool> ready{false}; // æ˜¯å¦æŠ¢å“
 
-atomic_flag win = ATOMIC_FLAG_INIT; // ÖÕµãÏß
+atomic_flag win = ATOMIC_FLAG_INIT; // ç»ˆç‚¹çº¿
 
 void Run(int id)
 {
-	// Ç¹Ã»Ïì, ²»ÄÜÅÜ
+	// æªæ²¡å“, ä¸èƒ½è·‘
 	while (!ready)
 	{
-		yield(); // ÈÃÆäËûÏß³ÌÏÈÖ´ĞĞ
+		yield(); // è®©å…¶ä»–çº¿ç¨‹å…ˆæ‰§è¡Œ
 	}
 
-	// ±íÊ¾ÅÜµÄ¹ı³Ì
+	// è¡¨ç¤ºè·‘çš„è¿‡ç¨‹
 	for (int i = 0; i < 100000; ++i){}
 
-	// Èç¹ûÃ»ÓĞ±»ÉèÖÃ¹ı, ·µ»Øfalse
-	if (!win.test_and_set()) // µ÷ÓÃÒ»´Îºó, ÏÂ´Îµ÷ÓÃ·µ»Øtrue
+	// å¦‚æœæ²¡æœ‰è¢«è®¾ç½®è¿‡, è¿”å›false
+	if (!win.test_and_set()) // è°ƒç”¨ä¸€æ¬¡å, ä¸‹æ¬¡è°ƒç”¨è¿”å›true
 	{
-		cout << id << "ºÅÑ¡ÊÖÓ®µÃµÚÒ»Ãû!"<<endl;
+		cout << id << "å·é€‰æ‰‹èµ¢å¾—ç¬¬ä¸€å!"<<endl;
 	}
 }
 
 int main()
 {
-	// 10¸öÑ¡ÊÖÈüÅÜ
+	// 10ä¸ªé€‰æ‰‹èµ›è·‘
 	vector<thread> vecPlayers;
 	for (int i=0;i<=10;++i)
 	{
 		vecPlayers.push_back(thread(Run, i));
 	}
-	cout << "10¸öÑ¡ÊÖÒÑ×¼±¸ºÃ!" << endl;
+	cout << "10ä¸ªé€‰æ‰‹å·²å‡†å¤‡å¥½!" << endl;
 
-	// ×¼±¸·¢ÃüÁî: Ô¤±¸ÅÜ
+	// å‡†å¤‡å‘å‘½ä»¤: é¢„å¤‡è·‘
 	sleep_for(chrono::seconds(3));
-	cout << "3¡¢2¡¢1 Ô¤±¸.. ÅÜ!" << endl;
+	cout << "3ã€2ã€1 é¢„å¤‡.. è·‘!" << endl;
 
 	ready = true;
 
-	// µÈ´ıËùÓĞÑ¡ÊÖÅÜÍê
+	// ç­‰å¾…æ‰€æœ‰é€‰æ‰‹è·‘å®Œ
 	for (thread& t:vecPlayers) 
 	{
 		t.join();
