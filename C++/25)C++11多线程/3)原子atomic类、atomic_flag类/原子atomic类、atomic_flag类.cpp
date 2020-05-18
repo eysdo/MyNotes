@@ -1,16 +1,16 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include<iostream>
 #include<thread>
-#include<atomic> // Ô­×ÓÍ·²Ù×÷ÎÄ¼ş
+#include<atomic> // åŸå­å¤´æ“ä½œæ–‡ä»¶
 using namespace std;
 
-atomic<int> N = 0; // Ê¹ÓÃatomic¿ÉÒÔ±£Ö¤¶ÔN²Ù×÷µÄÔ­×ÓĞÔ
+atomic<int> N = {0}; // ä½¿ç”¨atomicå¯ä»¥ä¿è¯å¯¹Næ“ä½œçš„åŸå­æ€§
 
 void ThreadFunc()
 {
 	for ( int i = 0; i < 1000000; ++i )
 	{
-		++N; // Ïß³Ì²¢·¢µ¼ÖÂ ¼Ó²Ù×÷ ÖØµş ²»ÊÇÔ­×Ó²Ù×÷, Òò´ËÓĞ¿ÉÄÜĞ¡ÓÚ 2000000
+		++N; // çº¿ç¨‹å¹¶å‘å¯¼è‡´ åŠ æ“ä½œ é‡å  ä¸æ˜¯åŸå­æ“ä½œ, å› æ­¤æœ‰å¯èƒ½å°äº 2000000
 	}
 }
 
@@ -22,7 +22,7 @@ int main()
 	t1.join();
 	t2.join();
 
-	cout << N << endl; // Ó¦¸ÃÊÇ2000000
+	cout << N << endl; // åº”è¯¥æ˜¯2000000
 
 	system("pause");
 	return 0;
