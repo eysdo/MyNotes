@@ -4,7 +4,7 @@
 #include<atomic> // 原子头操作文件
 using namespace std;
 
-atomic<int> N = {0}; // 使用atomic可以保证对N操作的原子性
+atomic<int> N{0}; // 使用atomic可以保证对N操作的原子性
 
 void ThreadFunc()
 {
