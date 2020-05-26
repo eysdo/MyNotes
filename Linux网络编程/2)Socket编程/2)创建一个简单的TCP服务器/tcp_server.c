@@ -11,11 +11,12 @@ int main(int argc, char** argv)
 
 	// 绑定
 	struct sockaddr_in myaddr;
-	bzero(&myaddr, sizeof(myaddr));
+	// bzero(&myaddr, sizeof(myaddr));
+	memset(&myaddr, 0, sizeof(myaddr));
 	myaddr.sin_family = AF_INET;
 	myaddr.sin_port = htons(9000);
-	inet_pton(AF_INET, "192.168.163.29", &myaddr.sin_addr.s_addr);
-
+	// inet_pton(AF_INET, "192.168.163.29", &myaddr.sin_addr.s_addr);
+	inet_pton(AF_INET, "0.0.0.0", &myaddr.sin_addr.s_addr);
 	bind(sock_fd, (struct sockaddr*)&myaddr, sizeof(myaddr));
 
 	// 监听
@@ -52,6 +53,7 @@ int main(int argc, char** argv)
 			printf("%s\n", buf);
 			write(c_fd, buf, ret);
 		}
+		memset(buf, 0, sizeof(buf));
 	}
 
 	// 关闭
